@@ -3,18 +3,19 @@ package main
 import (
    "os"
    "fmt"
+   kval "github.com/kval-access-language/kval-boltdb"
 ) 
 
 func main() {
 
-   kb, err := Connect("newdb.bolt")
+   kb, err := kval.Connect("newdb.bolt")
    if err != nil {
       fmt.Fprintf(os.Stderr, "Error opening bolt database: %v", err)
       os.Exit(1)
    }
-   defer Disconnect(kb)
+   defer kval.Disconnect(kb)
 
-   var res kvalresult
+   var res kval.Kvalresult
 
    var testins = []string{
       "INS triage bucket >> document bucket >> testbucket >>>> test1 :: value1",
@@ -31,18 +32,18 @@ func main() {
    }
 
    for _, value := range(testins) {
-      _, err = Query(kb, value)
+      _, err = kval.Query(kb, value)
       if err != nil {
          fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
       }
    }
 
-   _, err = Query(kb, "INS triage bucket >> document bucket >> testbucket >>>> abc :: def")
+   _, err = kval.Query(kb, "INS triage bucket >> document bucket >> testbucket >>>> abc :: def")
    if err != nil {
       fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
    }
 
-   res, err = Query(kb, "GET triage bucket >> document bucket >> testbucket >>>> abc")
+   res, err = kval.Query(kb, "GET triage bucket >> document bucket >> testbucket >>>> abc")
    if err != nil {
       fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
    }   
@@ -59,7 +60,7 @@ func main() {
    }
 
    for _, value := range(testget) {
-      res, err = Query(kb, value)
+      res, err = kval.Query(kb, value)
       if err != nil {
          fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
       } else {
@@ -67,7 +68,7 @@ func main() {
       }
    }
 
-   res, err = Query(kb, "GET triage bucket >> document bucket >> testbucket")
+   res, err = kval.Query(kb, "GET triage bucket >> document bucket >> testbucket")
    if err != nil {
       fmt.Fprintf(os.Stderr, "Error trying to get all.")
    }
@@ -76,7 +77,7 @@ func main() {
       fmt.Println("get all result:", res.Result)
    }
 
-   res, err = Query(kb, "GET triage bucket >> document bucket")
+   res, err = kval.Query(kb, "GET triage bucket >> document bucket")
    if err != nil {
       fmt.Fprintf(os.Stderr, "%v\n", err)
    } 
@@ -85,7 +86,7 @@ func main() {
    }   
 
 
-   res, err = Query(kb, "GET triage bucket >> document bucket >> delbucket")
+   res, err = kval.Query(kb, "GET triage bucket >> document bucket >> delbucket")
    if err != nil {
       fmt.Fprintf(os.Stderr, "%v\n", err)
    } 
@@ -103,13 +104,13 @@ func main() {
    }
 
    for _, value := range(deltests) {
-      _, err = Query(kb, value)
+      _, err = kval.Query(kb, value)
       if err != nil {
          fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
       }
    }
 
-   res, err = Query(kb, "GET triage bucket >> document bucket >> delbucket")
+   res, err = kval.Query(kb, "GET triage bucket >> document bucket >> delbucket")
    if err != nil {
       fmt.Fprintf(os.Stderr, "%v\n", err)
    } 
@@ -130,20 +131,20 @@ func main() {
    }
 
    for _, value := range(testrens) {
-      _, err = Query(kb, value)
+      _, err = kval.Query(kb, value)
       if err != nil {
          fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
       }
    }     
 
-   res, err = Query(kb, "GET r1 >> r2")
+   res, err = kval.Query(kb, "GET r1 >> r2")
    if err != nil {
       fmt.Fprintf(os.Stderr, "Expected error result for r2: %v\n", err)
    } else {
       fmt.Println("REN result:", res.Result)
    }      
 
-   res, err = Query(kb, "GET r1 >> supersonic >> r3")
+   res, err = kval.Query(kb, "GET r1 >> supersonic >> r3")
    if err != nil {
       fmt.Fprintf(os.Stderr, "%v\n", err)
    } else {
@@ -159,7 +160,7 @@ func main() {
    }
 
    for _, value := range(testlis) {
-      kr, err := Query(kb, value)
+      kr, err := kval.Query(kb, value)
       if err != nil {
          fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
       } else {
