@@ -10,161 +10,68 @@ func main() {
 
    kb, err := kval.Connect("newdb.bolt")
    if err != nil {
-      fmt.Fprintf(os.Stderr, "Error opening bolt database: %v", err)
+      fmt.Fprintf(os.Stderr, "Error opening bolt database: %#v", err)
       os.Exit(1)
    }
    defer kval.Disconnect(kb)
 
-   var res kval.Kvalresult
+	//Lets do a test insert...
+	res, _ := kval.Query(kb, "INS test bucket one >> test bucket two >>>> key one :: value one")
+	res, _ = kval.Query(kb, "INS test bucket one >> test bucket two >>>> key two :: value two")
+	res, _ = kval.Query(kb, "INS test bucket one >>>> key three :: value three")
 
-   var testins = []string{
-      "INS triage bucket >> document bucket >> testbucket >>>> test1 :: value1",
-      "INS triage bucket >> document bucket >> testbucket >>>> test2 :: value2",
-      "INS triage bucket >> document bucket >> testbucket >>>> test3 :: value3",
-      "INS triage bucket >> document bucket >> testbucket >>>> test4",   
-      "INS triage bucket >> document bucket >> testbucket >> inline bucket",
-      "INS triage bucket >> document bucket >> delbucket >>>> a1 :: b1",
-      "INS triage bucket >> document bucket >> delbucket >>>> a2 :: b2",
-      "INS triage bucket >> document bucket >> delbucket >>>> a3 :: b3",
-      "INS triage bucket >> document bucket >> delbucket >>>> a4 :: b4",
-      "INS triage bucket >> document bucket >> delbucket >> bucketbucket",    //test delete nested buckets in one go
-      "INS triage bucket >> document bucket >> testbucket >> bucketbucket",    
-   }
+	//list query to see if any of our data exists
+	lis, _ := kval.Query(kb, "LIS test bucket one")
 
-   for _, value := range(testins) {
-      _, err = kval.Query(kb, value)
-      if err != nil {
-         fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
-      }
-   }
+	//And output some stats from BotlDB's structs...
+	fmt.Printf("Bucket two keys: %d\n", res.Stats.KeyN)
+	fmt.Printf("Bucket onw depth: %d\n", lis.Stats.Depth)
 
-   _, err = kval.Query(kb, "INS triage bucket >> document bucket >> testbucket >>>> abc :: def")
-   if err != nil {
-      fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
-   }
+	//retrieve some data?
+	get, _ := kval.Query(kb, "GET test bucket one >> test bucket two")
 
-   res, err = kval.Query(kb, "GET triage bucket >> document bucket >> testbucket >>>> abc")
-   if err != nil {
-      fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
-   }   
-    
-   if res.Result != nil {
-      fmt.Println("Result one:", res.Result)
-   }
+	//we should have two results, so may need a loop to access...
+	fmt.Printf("How many results in GET: %d\n", len(get.Result))
 
-   var testget = []string{
-      "GET triage bucket >> document bucket >> testbucket >>>> test1",
-      "GET triage bucket >> document bucket >> testbucket >>>> test2",
-      "GET triage bucket >> document bucket >> testbucket >>>> test3",
-      "GET triage bucket >> document bucket >> testbucket >>>> test4",      
-   }
+	for k, v := range(get.Result) {
+		fmt.Printf("Key: %s, Value: %s\n", k, v)
+	}
 
-   for _, value := range(testget) {
-      res, err = kval.Query(kb, value)
-      if err != nil {
-         fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
-      } else {
-         fmt.Println("GET loop:", res.Result)
-      }
-   }
+	//binary objects?
+	_ = kval.StoreBlob(kb, "INS binary data >>>> data one", "text/plain", []byte("some data"))
+	
+	//get it back?
+	data, _ := kval.Query(kb, "GET binary data >>>> data one")
 
-   res, err = kval.Query(kb, "GET triage bucket >> document bucket >> testbucket")
-   if err != nil {
-      fmt.Fprintf(os.Stderr, "Error trying to get all.")
-   }
+	//UnwrapBlob and GetblobData are helpers to access the data, but let's just print it	
+	fmt.Printf("Encoded data: %s\n", data.Result["data one"])
 
-   if res.Result != nil{
-      fmt.Println("get all result:", res.Result)
-   }
+	//How about renaming our data?
+	kval.Query(kb, "REN test bucket one >> test bucket two => new name for bucket two")	
 
-   res, err = kval.Query(kb, "GET triage bucket >> document bucket")
-   if err != nil {
-      fmt.Fprintf(os.Stderr, "%v\n", err)
-   } 
-   if res.Result != nil{
-      fmt.Println("get all result:", res.Result)
-   }   
+	//repeat how we retrieved the data last time...
+	get, _ = kval.Query(kb, "GET test bucket one >> new name for bucket two")
 
+	//we should have two results, so may need a loop to access...
+	fmt.Printf("How many results in GET: %d\n", len(get.Result))
 
-   res, err = kval.Query(kb, "GET triage bucket >> document bucket >> delbucket")
-   if err != nil {
-      fmt.Fprintf(os.Stderr, "%v\n", err)
-   } 
-   if res.Result != nil{
-      fmt.Println("get all DEL result:", res.Result)
-   }   
+	for k, v := range(get.Result) {
+		fmt.Printf("Key: %s, Value: %s\n", k, v)
+	}
 
+	//check our old bucket has gone...
+	lis, _ = kval.Query(kb, "LIS test bucket one >> test bucket two")
 
-   var deltests = []string {
-      //"DEL triage bucket >> document bucket >> testbucket",
-      //"DEL triage bucket >> document bucket >> testbucket >>>> test2",
-      //"DEL triage bucket >> document bucket >> testbucket >>>> bucketbucket",
-      "DEL  triage bucket >> document bucket >> delbucket >>>> a2 :: _",
-      //"DEL triage bucket >> document bucket >> delbucket >>>> _",     //del all keys from a bucket
-   }
+	fmt.Printf("Bucket still exists? %v\n", lis.Exists)
+	
+	//delete is easy too...
+	del, _ := kval.Query(kb, "DEL test bucket one")	
 
-   for _, value := range(deltests) {
-      _, err = kval.Query(kb, value)
-      if err != nil {
-         fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
-      }
-   }
+	//any data left?
+	fmt.Printf("Bucket keys:  %d\n", del.Stats.KeyN)
+	fmt.Printf("Bucket depth: %d\n", del.Stats.Depth)	
 
-   res, err = kval.Query(kb, "GET triage bucket >> document bucket >> delbucket")
-   if err != nil {
-      fmt.Fprintf(os.Stderr, "%v\n", err)
-   } 
-   if res.Result != nil{
-      fmt.Println("get all DEL result:", res.Result)
-   }      
-
-   var testrens = []string{
-      "INS r1 >> r2 >> r3 >>>> rk1 :: vvvrv1",
-      "INS r1 >> r2 >> r3 >>>> rk2 :: rv3",
-      "INS r1 >> r2 >> r3 >> r4",
-      "INS r1 >> r2 >> r3 >> r4 >>>> rk11 :: rv11",
-      "INS r1 >> r2 >> r3 >> r4 >>>> rk21 :: rv21",
-      "INS r1 >> r2 >> r3 >> r4 >>>> rk31 :: rv31",
-      "INS r1 >> r2 >> r3 >>>> rk3 :: rv4",
-      "REN r1 >> r2 >> r3 >>>> rk1 => rename1", 
-      "REN r1 >> r2 => supersonic",  
-   }
-
-   for _, value := range(testrens) {
-      _, err = kval.Query(kb, value)
-      if err != nil {
-         fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
-      }
-   }     
-
-   res, err = kval.Query(kb, "GET r1 >> r2")
-   if err != nil {
-      fmt.Fprintf(os.Stderr, "Expected error result for r2: %v\n", err)
-   } else {
-      fmt.Println("REN result:", res.Result)
-   }      
-
-   res, err = kval.Query(kb, "GET r1 >> supersonic >> r3")
-   if err != nil {
-      fmt.Fprintf(os.Stderr, "%v\n", err)
-   } else {
-      fmt.Println("REN result:", res.Result)
-   } 
-
-   var testlis = []string{
-      "INS ins1 >> ins2 >> ins3 >>>> key1 :: value1",
-      "LIS ins1 >> ins2",
-      "lis ins1 >> ins2 >> ins3 >>>> key1",
-      "lis ins1 >> ins2 >> ins3 >>>> keyunknown",
-      "lis ins1 >> ins2 >> ins4",
-   }
-
-   for _, value := range(testlis) {
-      kr, err := kval.Query(kb, value)
-      if err != nil {
-         fmt.Fprintf(os.Stderr, "Error querying db: %v", err)
-      } else {
-         fmt.Println("Exist results:", kr.Exists)
-      }
-   }     
+	if del.Stats.KeyN == 0 && del.Stats.Depth == 0 {
+		fmt.Println("Thanks for checking out this demo Gophers!")
+	}
 }
