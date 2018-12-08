@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	kval "github.com/kval-access-language/kval-boltdb"
+	kval "github.com/kval-access-language/kval-bbolt"
 	"os"
 )
 
