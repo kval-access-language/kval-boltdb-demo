@@ -71,6 +71,9 @@ func main() {
 	fmt.Printf("Bucket keys:  %d\n", del.Stats.KeyN)
 	fmt.Printf("Bucket depth: %d\n", del.Stats.Depth)
 
+	//output the kval-bbolt version
+	fmt.Printf("KVAL-bbolt version: %s\n", kval.Version())
+
 	if del.Stats.KeyN == 0 && del.Stats.Depth == 0 {
 		fmt.Println("Thanks for checking out this demo Gophers!")
 	}
